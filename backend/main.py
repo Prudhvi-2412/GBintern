@@ -52,9 +52,13 @@ DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 if DIST.exists():
     app.mount("/assets", StaticFiles(directory=DIST / "assets"), name="assets")
 
+    def index_response() -> FileResponse:
+        # The HTML points at versioned Vite assets; always recheck it after a deploy.
+        return FileResponse(DIST / "index.html", headers={"Cache-Control": "no-store"})
+
     @app.get("/{path:path}")
     def spa(path: str):
         candidate = DIST / path
         if path and candidate.is_file() and candidate.resolve().is_relative_to(DIST.resolve()):
             return FileResponse(candidate)
-        return FileResponse(DIST / "index.html")
+        return index_response()

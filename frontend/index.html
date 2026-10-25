@@ -3,12 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0b1220" />
+    <meta name="theme-color" content="#24734e" />
     <title>Wind Decision Desk | January 2026 pilot</title>
     <meta name="description" content="As-of day-ahead wind forecasts and forecast accuracy from Elexon data." />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main style="font: 16px system-ui, sans-serif; max-width: 32rem; margin: 15vh auto; padding: 1.5rem; color: CanvasText; background: Canvas; border-radius: 12px">
+        <h1 style="font-size: 1.5rem">Loading Winddesk…</h1>
+        <p>If this page remains here, <a href="/?retry=1">reload the dashboard</a>.</p>
+      </main>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
