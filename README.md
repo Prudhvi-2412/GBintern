@@ -80,7 +80,7 @@ The API endpoints are `GET /api/health` and `GET /api/dashboard?date=2026-01-15&
 
 ## Deployment
 
-**Live application:** Pending publication. Vercel supports FastAPI as a Python function and the repo includes its entrypoint and React build command. Alternatively the supplied Dockerfile can run on a container host. Add the verified public application URL here before submission.
+**Live application:** [https://g-bintern.vercel.app/](https://g-bintern.vercel.app/). Vercel runs FastAPI as a Python function and builds the React frontend from the same repository. The supplied Dockerfile also runs the app locally or on a container host.
 
 ## AI assistance
 
