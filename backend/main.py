@@ -41,7 +41,11 @@ def dashboard(
     if not date(2026, 1, 1) <= decision_date <= date(2026, 1, 31):
         raise HTTPException(status_code=422, detail="Decision date must be in January 2026")
     cutoff_time = checked_cutoff(cutoff)
-    return {"selected": analysis().day(decision_date, cutoff_time), "overview": analysis().overview(cutoff_time)}
+    return {
+        "selected": analysis().day(decision_date, cutoff_time),
+        "calibration": analysis().calibration(decision_date, cutoff_time),
+        "overview": analysis().overview(cutoff_time),
+    }
 
 
 DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"

@@ -46,6 +46,33 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(scored["bias"], 0)
         self.assertEqual(scored["wape"], 20)
 
+    def test_calibration_excludes_future_days_and_late_actual_revisions(self):
+        payload = {
+            "retrievedAt": "2026-02-02T00:00:00Z",
+            "forecasts": [
+                {"publishTime": "2026-01-01T09:00:00Z", "startTime": "2026-01-02T00:00:00Z", "generation": 120},
+                {"publishTime": "2026-01-02T09:00:00Z", "startTime": "2026-01-03T00:00:00Z", "generation": 500},
+            ],
+            "actuals": [
+                {"publishTime": "2026-01-02T00:30:00Z", "startTime": "2026-01-02T00:00:00Z", "generation": 80},
+                {"publishTime": "2026-01-02T01:00:00Z", "startTime": "2026-01-02T00:30:00Z", "generation": 100},
+                {"publishTime": "2026-01-05T00:00:00Z", "startTime": "2026-01-02T00:00:00Z", "generation": 0},
+                {"publishTime": "2026-01-03T00:30:00Z", "startTime": "2026-01-03T00:00:00Z", "generation": 0},
+                {"publishTime": "2026-01-03T01:00:00Z", "startTime": "2026-01-03T00:30:00Z", "generation": 0},
+            ],
+        }
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as folder:
+            path = Path(folder) / "sample.gz"
+            with gzip.open(path, "wt", encoding="utf-8") as file:
+                json.dump(payload, file)
+            model = WindAnalysis(path)
+            early = model.calibration(date(2026, 1, 2), time(11))
+            current = model.calibration(date(2026, 1, 3), time(11))
+        self.assertEqual(early["metrics"]["count"], 0)
+        self.assertEqual(current["eligibleDays"], 1)
+        self.assertEqual(current["metrics"]["count"], 1)
+        self.assertEqual(current["metrics"]["bias"], 30)
+
 
 if __name__ == "__main__":
     unittest.main()

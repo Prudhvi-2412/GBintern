@@ -8,6 +8,8 @@ A January 2026 pilot for a GB electricity buyer. The dashboard reconstructs the 
 - For each delivery hour, take the latest `WINDFOR` value whose `publishTime` is at or before the cutoff. Forecasts published afterward are never used in that decision snapshot.
 - Compare it with the mean of the two corresponding half-hour `FUELHH` records where `fuelType` is `WIND`. January WINDFOR targets are hourly; FUELHH actual targets are half-hourly. This alignment avoids inventing half-hour forecasts or dropping half the actuals.
 - Show the daily profile, publication time, coverage, and a retrospective January backtest: mean absolute error (MAE), signed bias (`forecast − actual`), root mean square error (RMSE, API), 90th percentile absolute error, and weighted absolute percentage error (WAPE = total absolute error / total actual generation).
+- Show a decision-time error reference from complete prior delivery days only. Actual revisions are also limited to publications available by the chosen cutoff. The 90th percentile absolute error is a historical guide, not a prediction interval or guarantee.
+- Switch between light and dark themes; the choice is stored locally in the browser.
 
 The cutoff defaults to **11:00 UTC** as an illustrative buyer decision time, **not a claim about any specific auction gate closure**. The client should set it to its actual workflow. All dates in scope fall in UK winter time, so UK local time equals UTC.
 
@@ -50,17 +52,17 @@ To refresh the snapshot (public API, no key required):
 python scripts/fetch_elexon.py
 ```
 
-The script fetches one publication day at a time with retries, filters WIND actuals, keeps forecast publication versions, and writes the compact snapshot. Missing hours stay missing and are excluded from error metrics; coverage is always reported. Actual revisions are resolved by latest `publishTime` available in the snapshot.
+The script fetches one publication day at a time with retries, filters WIND actuals, keeps forecast publication versions, and writes the compact snapshot. Missing hours stay missing and are excluded from error metrics; coverage is always reported. Actual revisions are resolved by latest `publishTime` for retrospective charts, and by decision cutoff for the prior-only error reference.
 
 ## Files and directories
 
 | Path | Purpose |
 | --- | --- |
 | `backend/main.py` | FastAPI routes, validation, and serving the built React app |
-| `backend/analysis.py` | As-of forecast selection, hourly actual alignment, and error metrics |
+| `backend/analysis.py` | As-of forecast selection, hourly actual alignment, decision-time calibration, and error metrics |
 | `backend/requirements.txt`, `requirements.txt` | Python runtime dependencies |
-| `frontend/src/main.jsx` | React dashboard, interactions, SVG chart, and daily drill-down |
-| `frontend/src/style.css` | Responsive visual design |
+| `frontend/src/main.jsx` | React dashboard, theme switch, interactions, SVG chart, and daily drill-down |
+| `frontend/src/style.css` | Responsive light and dark visual design |
 | `frontend/package.json`, `frontend/package-lock.json`, `frontend/vite.config.js` | Frontend dependencies and development proxy |
 | `data/january_2026.json.gz` | Reproducible Elexon pilot snapshot |
 | `scripts/fetch_elexon.py` | Public API ingestion and snapshot regeneration |

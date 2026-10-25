@@ -49,7 +49,7 @@ class WindAnalysis:
             data = json.load(file)
         self.retrieved_at = data["retrievedAt"]
         self.forecasts = defaultdict(list)
-        self.actuals = {}
+        self.actuals = defaultdict(list)
         for row in data["forecasts"]:
             self.forecasts[parse_utc(row["startTime"])].append((parse_utc(row["publishTime"]), row["generation"]))
         for versions in self.forecasts.values():
@@ -57,10 +57,16 @@ class WindAnalysis:
         for row in data["actuals"]:
             start = parse_utc(row["startTime"])
             published = parse_utc(row["publishTime"]) if row.get("publishTime") else datetime.min.replace(tzinfo=UTC)
-            if start not in self.actuals or published >= self.actuals[start][0]:
-                self.actuals[start] = (published, row["generation"])
+            self.actuals[start].append((published, row["generation"]))
+        for versions in self.actuals.values():
+            versions.sort()
 
-    def day(self, decision_date: date, cutoff: time) -> dict:
+    def actual_at(self, target: datetime, asof: datetime | None) -> float | None:
+        versions = self.actuals.get(target, [])
+        eligible = [version for version in versions if asof is None or version[0] <= asof]
+        return eligible[-1][1] if eligible else None
+
+    def day(self, decision_date: date, cutoff: time, actual_asof: datetime | None = None) -> dict:
         cutoff_dt = datetime.combine(decision_date, cutoff, UTC)
         delivery_date = decision_date + timedelta(days=1)
         start = datetime.combine(delivery_date, time(0, 0), UTC)
@@ -69,9 +75,9 @@ class WindAnalysis:
             target = start + timedelta(hours=period)
             eligible = [v for v in self.forecasts.get(target, []) if v[0] <= cutoff_dt]
             selected = eligible[-1] if eligible else None
-            actual_first = self.actuals.get(target)
-            actual_second = self.actuals.get(target + timedelta(minutes=30))
-            actual = (actual_first[1] + actual_second[1]) / 2 if actual_first and actual_second else None
+            actual_first = self.actual_at(target, actual_asof)
+            actual_second = self.actual_at(target + timedelta(minutes=30), actual_asof)
+            actual = (actual_first + actual_second) / 2 if actual_first is not None and actual_second is not None else None
             rows.append({
                 "startTime": target.isoformat().replace("+00:00", "Z"),
                 "label": target.strftime("%H:%M"),
@@ -88,6 +94,21 @@ class WindAnalysis:
             "metrics": metrics(rows),
             "forecastCoverage": sum(r["forecast"] is not None for r in rows),
             "actualCoverage": sum(r["actual"] is not None for r in rows),
+        }
+
+    def calibration(self, decision_date: date, cutoff: time) -> dict:
+        """Score only complete prior delivery days using actuals published by this decision."""
+        decision_at = datetime.combine(decision_date, cutoff, UTC)
+        prior_days = [
+            self.day(date(2026, 1, 1) + timedelta(days=i), cutoff, decision_at)
+            for i in range(max(0, (decision_date - date(2026, 1, 2)).days))
+        ]
+        rows = [row for day in prior_days for row in day["rows"]]
+        return {
+            "metrics": metrics(rows),
+            "eligibleDays": len(prior_days),
+            "expectedPeriods": len(prior_days) * 24,
+            "lastDeliveryDate": prior_days[-1]["deliveryDate"] if prior_days else None,
         }
 
     def overview(self, cutoff: time) -> dict:
