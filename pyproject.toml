@@ -1,2 +1,11 @@
+[project]
+name = "wind-decision-desk"
+version = "1.0.0"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "fastapi==0.115.12",
+  "uvicorn==0.34.2",
+]
+
 [tool.vercel]
 entrypoint = "backend.main:app"
