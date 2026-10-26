@@ -62,14 +62,14 @@ class WindAnalysis:
             versions.sort()
         for row in data["actuals"]:
             start = parse_utc(row["startTime"])
-            published = parse_utc(row["publishTime"]) if row.get("publishTime") else datetime.min.replace(tzinfo=UTC)
+            published = parse_utc(row["publishTime"]) if row.get("publishTime") else None
             self.actuals[start].append((published, row["generation"]))
         for versions in self.actuals.values():
-            versions.sort()
+            versions.sort(key=lambda version: version[0] or datetime.min.replace(tzinfo=UTC))
 
     def actual_at(self, target: datetime, asof: datetime | None) -> float | None:
         versions = self.actuals.get(target, [])
-        eligible = [version for version in versions if asof is None or version[0] <= asof]
+        eligible = [version for version in versions if asof is None or (version[0] is not None and version[0] <= asof)]
         return eligible[-1][1] if eligible else None
 
     def day(self, decision_date: date, cutoff: time, actual_asof: datetime | None = None) -> dict:

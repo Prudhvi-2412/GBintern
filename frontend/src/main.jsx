@@ -108,6 +108,7 @@ function App() {
     const controller = new AbortController()
     setLoading(true)
     setError('')
+    setData(null)
     fetch(`/api/dashboard?date=${date}&cutoff=${cutoff}`, { signal: controller.signal })
       .then(async response => {
         if (!response.ok) throw new Error((await response.json()).detail || 'Could not load the Elexon snapshot')

@@ -61,7 +61,7 @@ The script fetches one publication day at a time with retries, filters WIND actu
 | --- | --- |
 | `backend/main.py` | FastAPI routes, validation, and serving the built React app |
 | `backend/analysis.py` | As-of forecast selection, hourly actual alignment, decision-time calibration, and error metrics |
-| `backend/requirements.txt`, `requirements.txt` | Python runtime dependencies |
+| `backend/requirements.txt`, `requirements.txt` | Python dependencies for Docker and Vercel respectively |
 | `frontend/src/main.jsx` | React dashboard, theme switch, interactions, SVG chart, and daily drill-down |
 | `frontend/src/style.css` | Responsive light and dark visual design |
 | `frontend/package.json`, `frontend/package-lock.json`, `frontend/vite.config.js` | Frontend dependencies and development proxy |
@@ -70,7 +70,6 @@ The script fetches one publication day at a time with retries, filters WIND actu
 | `tests/test_analysis.py` | Forecast vintage, hourly alignment, and metrics checks |
 | `Dockerfile`, `docker-compose.yml` | Container build and local run |
 | `pyproject.toml`, `vercel.json` | Vercel FastAPI entrypoint and frontend build |
-| `docs/demo-guide.md` | Customer and technical-lead video run sheet |
 
 ## Verification
 

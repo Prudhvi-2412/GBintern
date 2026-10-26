@@ -80,6 +80,27 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(current["metrics"]["p90WindShortfall"], 30)
         self.assertEqual(current["metrics"]["overforecastShare"], 100)
 
+    def test_unknown_actual_publication_is_retrospective_only(self):
+        payload = {
+            "retrievedAt": "2026-02-02T00:00:00Z",
+            "forecasts": [
+                {"publishTime": "2026-01-01T09:00:00Z", "startTime": "2026-01-02T00:00:00Z", "generation": 100},
+            ],
+            "actuals": [
+                {"startTime": "2026-01-02T00:00:00Z", "generation": 80},
+                {"startTime": "2026-01-02T00:30:00Z", "generation": 100},
+            ],
+        }
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as folder:
+            path = Path(folder) / "sample.gz"
+            with gzip.open(path, "wt", encoding="utf-8") as file:
+                json.dump(payload, file)
+            model = WindAnalysis(path)
+            retrospective = model.day(date(2026, 1, 1), time(11))
+            decision_reference = model.calibration(date(2026, 1, 3), time(11))
+        self.assertEqual(retrospective["rows"][0]["actual"], 90)
+        self.assertEqual(decision_reference["metrics"]["count"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()
