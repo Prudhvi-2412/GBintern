@@ -96,6 +96,8 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid 
 .kpi-value.compact { font-size: 25px; }
 .kpi-value small { color: var(--subtle); font-size: 14px; font-weight: 600; letter-spacing: 0; }
 .kpi-sub { color: var(--subtle); font-size: 10px; }
+.coverage-warning { display: flex; align-items: flex-start; gap: 9px; margin-top: 14px; padding: 12px 15px; border: 1px solid color-mix(in srgb, var(--actual) 55%, var(--border)); border-radius: 9px; background: color-mix(in srgb, var(--actual) 12%, var(--surface)); color: var(--text); font-size: 11px; line-height: 1.5; }
+.coverage-warning svg { flex: none; color: var(--actual); }
 .decision-panel { display: flex; align-items: center; gap: 18px; padding: 18px 21px; margin-top: 17px; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border)); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
 .decision-icon { width: 39px; height: 39px; flex: none; display: grid; place-items: center; border-radius: 11px; color: var(--accent-strong); background: var(--accent-soft); }
 .decision-copy { flex: 1; min-width: 0; }

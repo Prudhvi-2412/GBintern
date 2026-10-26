@@ -13,6 +13,8 @@ const shortDate = value => new Date(`${value}T12:00:00Z`).toLocaleDateString('en
 const timestamp = value => value ? new Date(value).toLocaleString('en-GB', {
   day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC'
 }) : 'No eligible publication'
+const ageLabel = minutes => minutes == null ? '—' :
+  minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}m` : ''}`
 
 function initialTheme() {
   try {
@@ -124,8 +126,8 @@ function App() {
     row.publishTime && (!best || row.publishTime > best) ? row.publishTime : best, null), [selected])
   const forecastGwh = selected?.rows.reduce((sum, row) => sum + (row.forecast ?? 0) / 1000, 0)
   const actualGwh = selected?.rows.reduce((sum, row) => sum + (row.actual ?? 0) / 1000, 0)
-  const historicalBand = calibration?.metrics.p90AbsoluteError
-  const bias = calibration?.metrics.bias
+  const shortfallRisk = calibration?.metrics.p90WindShortfall
+  const overforecastShare = calibration?.metrics.overforecastShare
 
   return <div className="app-shell">
     <aside className="sidebar">
@@ -167,23 +169,24 @@ function App() {
           </div>
           <div className="kpi-grid">
             <div className="kpi feature"><span className="kpi-label">Forecast wind energy</span><div className="kpi-value">{selected.forecastCoverage === 24 ? forecastGwh.toFixed(1) : '—'} <small>GWh</small></div><div className="kpi-sub">{selected.forecastCoverage === 24 ? '24 hourly forecast periods' : 'Full-day total unavailable · missing hours'}</div><Icon name="wind" size={44}/></div>
-            <div className="kpi"><span className="kpi-label">Latest publication used</span><div className="kpi-value compact">{newest ? new Date(newest).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', timeZone:'UTC' }) : '—'} <small>UTC</small></div><div className="kpi-sub">{newest ? shortDate(newest.slice(0,10)) : 'No eligible forecast'}</div></div>
+            <div className="kpi"><span className="kpi-label">Latest publication used</span><div className="kpi-value compact">{newest ? new Date(newest).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', timeZone:'UTC' }) : '—'} <small>UTC</small></div><div className="kpi-sub">{newest ? `${shortDate(newest.slice(0,10))} · ${ageLabel(selected.newestForecastAgeMinutes)} old at cutoff` : 'No eligible forecast'}</div></div>
             <div className="kpi"><span className="kpi-label">Forecast coverage</span><div className="kpi-value">{selected.forecastCoverage}<small> / 24</small></div><div className="kpi-sub">Hourly delivery periods</div></div>
             <div className="kpi"><span className="kpi-label">Actual wind energy</span><div className="kpi-value">{selected.actualCoverage === 24 ? actualGwh.toFixed(1) : '—'} <small>GWh</small></div><div className="kpi-sub">Retrospective review only</div></div>
           </div>
+          {selected.forecastCoverage < 24 && <div className="coverage-warning" role="status"><Icon name="info" size={18}/> Missing forecasts for {24 - selected.forecastCoverage} delivery {24 - selected.forecastCoverage === 1 ? 'hour' : 'hours'}. The full-day wind total is withheld; inspect the data table for gaps.</div>}
 
           <div className="decision-panel">
             <div className="decision-icon"><Icon name="chart" size={21}/></div>
-            <div className="decision-copy"><div className="section-kicker">KNOWN AT DECISION TIME</div><h3>Historical error reference</h3>
+            <div className="decision-copy"><div className="section-kicker">KNOWN AT DECISION TIME</div><h3>Wind shortfall reference</h3>
               {calibration.metrics.count ? <p>Based on {calibration.metrics.count} matched hours from complete delivery days through {shortDate(calibration.lastDeliveryDate)}.</p>
                 : <p>No complete prior January delivery day is available at this cutoff.</p>}
             </div>
             <div className="decision-stats">
-              <div><span>90% of past hourly misses within</span><strong>{historicalBand == null ? '—' : `±${number(historicalBand)}`} <small>MW</small></strong></div>
-              <div><span>Average forecast bias</span><strong>{signed(bias)} <small>MW</small></strong></div>
+              <div><span>P90 wind below forecast</span><strong>{number(shortfallRisk)} <small>MW</small></strong></div>
+              <div><span>Past hours below forecast</span><strong>{overforecastShare == null ? '—' : overforecastShare} <small>%</small></strong></div>
             </div>
           </div>
-          <p className="decision-note"><Icon name="info" size={15}/> Historical reference only; the ± value is an empirical 90th percentile, not a predictive guarantee. Positive bias means the forecast exceeded actual wind.</p>
+          <p className="decision-note"><Icon name="info" size={15}/> Shortfall means actual wind was lower than forecast. P90 is the 90th percentile of prior hourly shortfalls, including zero-shortfall hours; it is a historical reference, not a predictive guarantee.{selected.oldestForecastAgeMinutes > selected.newestForecastAgeMinutes ? ` The oldest forecast used was ${ageLabel(selected.oldestForecastAgeMinutes)} old at cutoff.` : ''}</p>
 
           <div className="panel chart-panel">
             <div className="panel-header"><div><div className="section-kicker">DELIVERY PROFILE</div><h3>Forecast vs. actual generation</h3><p>Hourly profile for {dateLabel(selected.deliveryDate)} · MW</p></div>

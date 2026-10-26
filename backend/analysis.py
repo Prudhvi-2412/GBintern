@@ -30,7 +30,11 @@ def percentile(values: list[float], p: float) -> float | None:
 def metrics(rows: list[dict]) -> dict:
     errors = [r["forecast"] - r["actual"] for r in rows if r["forecast"] is not None and r["actual"] is not None]
     if not errors:
-        return {"count": 0, "mae": None, "bias": None, "rmse": None, "p90AbsoluteError": None, "wape": None}
+        return {
+            "count": 0, "mae": None, "bias": None, "rmse": None,
+            "p90AbsoluteError": None, "p90WindShortfall": None,
+            "overforecastShare": None, "wape": None,
+        }
     matched = [r for r in rows if r["forecast"] is not None and r["actual"] is not None]
     actual_sum = sum(abs(r["actual"]) for r in matched)
     return {
@@ -39,6 +43,8 @@ def metrics(rows: list[dict]) -> dict:
         "bias": round(sum(errors) / len(errors)),
         "rmse": round(math.sqrt(sum(e * e for e in errors) / len(errors))),
         "p90AbsoluteError": round(percentile([abs(e) for e in errors], 0.9)),
+        "p90WindShortfall": round(percentile([max(e, 0) for e in errors], 0.9)),
+        "overforecastShare": round(100 * sum(e > 0 for e in errors) / len(errors), 1),
         "wape": round(100 * sum(map(abs, errors)) / actual_sum, 1) if actual_sum else None,
     }
 
@@ -71,10 +77,13 @@ class WindAnalysis:
         delivery_date = decision_date + timedelta(days=1)
         start = datetime.combine(delivery_date, time(0, 0), UTC)
         rows = []
+        selected_publications = []
         for period in range(24):
             target = start + timedelta(hours=period)
             eligible = [v for v in self.forecasts.get(target, []) if v[0] <= cutoff_dt]
             selected = eligible[-1] if eligible else None
+            if selected:
+                selected_publications.append(selected[0])
             actual_first = self.actual_at(target, actual_asof)
             actual_second = self.actual_at(target + timedelta(minutes=30), actual_asof)
             actual = (actual_first + actual_second) / 2 if actual_first is not None and actual_second is not None else None
@@ -94,6 +103,8 @@ class WindAnalysis:
             "metrics": metrics(rows),
             "forecastCoverage": sum(r["forecast"] is not None for r in rows),
             "actualCoverage": sum(r["actual"] is not None for r in rows),
+            "newestForecastAgeMinutes": round((cutoff_dt - max(selected_publications)).total_seconds() / 60) if selected_publications else None,
+            "oldestForecastAgeMinutes": round((cutoff_dt - min(selected_publications)).total_seconds() / 60) if selected_publications else None,
         }
 
     def calibration(self, decision_date: date, cutoff: time) -> dict:

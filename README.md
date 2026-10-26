@@ -8,7 +8,8 @@ A January 2026 pilot for a GB electricity buyer. The dashboard reconstructs the 
 - For each delivery hour, take the latest `WINDFOR` value whose `publishTime` is at or before the cutoff. Forecasts published afterward are never used in that decision snapshot.
 - Compare it with the mean of the two corresponding half-hour `FUELHH` records where `fuelType` is `WIND`. January WINDFOR targets are hourly; FUELHH actual targets are half-hourly. This alignment avoids inventing half-hour forecasts or dropping half the actuals.
 - Show the daily profile, publication time, coverage, and a retrospective January backtest: mean absolute error (MAE), signed bias (`forecast − actual`), root mean square error (RMSE, API), 90th percentile absolute error, and weighted absolute percentage error (WAPE = total absolute error / total actual generation).
-- Show a decision-time error reference from complete prior delivery days only. Actual revisions are also limited to publications available by the chosen cutoff. The 90th percentile absolute error is a historical guide, not a prediction interval or guarantee.
+- Show a decision-time wind shortfall reference from complete prior delivery days only. Actual revisions are also limited to publications available by the chosen cutoff. Shortfall is `max(forecast − actual, 0)`; its 90th percentile and the share of hours with actual wind below forecast are historical guides, not prediction guarantees.
+- Show how old the latest selected forecast was at the purchase cutoff, and explicitly warn when delivery hours lack a forecast.
 - Switch between light and dark themes; the choice is stored locally in the browser.
 
 The cutoff defaults to **11:00 UTC** as an illustrative buyer decision time, **not a claim about any specific auction gate closure**. The client should set it to its actual workflow. All dates in scope fall in UK winter time, so UK local time equals UTC.
@@ -52,7 +53,7 @@ To refresh the snapshot (public API, no key required):
 python scripts/fetch_elexon.py
 ```
 
-The script fetches one publication day at a time with retries, filters WIND actuals, keeps forecast publication versions, and writes the compact snapshot. Missing hours stay missing and are excluded from error metrics; coverage is always reported. Actual revisions are resolved by latest `publishTime` for retrospective charts, and by decision cutoff for the prior-only error reference.
+The script fetches one publication day at a time with retries, filters WIND actuals, keeps forecast publication versions, and writes the compact snapshot. Missing hours stay missing and are excluded from error metrics; coverage is always reported. Actual revisions are resolved by latest `publishTime` for retrospective charts, and by decision cutoff for the prior-only shortfall reference.
 
 ## Files and directories
 

@@ -27,11 +27,14 @@ class AnalysisTests(unittest.TestCase):
             with gzip.open(path, "wt", encoding="utf-8") as file:
                 json.dump(payload, file)
             model = WindAnalysis(path)
-            before = model.day(date(2026, 1, 15), time(11))["rows"][0]
+            before_day = model.day(date(2026, 1, 15), time(11))
+            before = before_day["rows"][0]
             after = model.day(date(2026, 1, 15), time(13))["rows"][0]
         self.assertEqual(before["forecast"], 120)
         self.assertEqual(before["actual"], 90)
         self.assertEqual(before["error"], 30)
+        self.assertEqual(before_day["newestForecastAgeMinutes"], 30)
+        self.assertEqual(before_day["oldestForecastAgeMinutes"], 30)
         self.assertEqual(after["forecast"], 999)
         self.assertEqual(len(model.day(date(2026, 1, 15), time(11))["rows"]), 24)
 
@@ -44,6 +47,8 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(scored["count"], 2)
         self.assertEqual(scored["mae"], 20)
         self.assertEqual(scored["bias"], 0)
+        self.assertEqual(scored["p90WindShortfall"], 18)
+        self.assertEqual(scored["overforecastShare"], 50)
         self.assertEqual(scored["wape"], 20)
 
     def test_calibration_excludes_future_days_and_late_actual_revisions(self):
@@ -72,6 +77,8 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(current["eligibleDays"], 1)
         self.assertEqual(current["metrics"]["count"], 1)
         self.assertEqual(current["metrics"]["bias"], 30)
+        self.assertEqual(current["metrics"]["p90WindShortfall"], 30)
+        self.assertEqual(current["metrics"]["overforecastShare"], 100)
 
 
 if __name__ == "__main__":
